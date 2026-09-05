@@ -75,6 +75,28 @@ theorem restrictScalars_smul {M : Type*} [Monoid M] [DistribMulAction M F] [SMul
     (a • A).restrictScalars S = a • A.restrictScalars S :=
   LinearPMap.ext rfl fun _ _ _ => rfl
 
+
+/-- Restricting scalars does not change the graph, as a set. -/
+theorem coe_graph_restrictScalars (A : E →ₗ.[R] F) :
+    ((A.restrictScalars S).graph : Set (E × F)) = (A.graph : Set (E × F)) := by
+  ext p
+  simp only [SetLike.mem_coe, LinearPMap.mem_graph_iff]
+  constructor
+  · rintro ⟨x, hx1, hx2⟩
+    rw [A.restrictScalars_apply S] at hx2
+    exact ⟨⟨x, (A.mem_restrictScalars_domain S).mp x.property⟩, hx1, hx2⟩
+  · rintro ⟨x, hx1, hx2⟩
+    exact ⟨⟨x, (A.mem_restrictScalars_domain S).mpr x.property⟩, hx1,
+      by rw [A.restrictScalars_apply S]; exact hx2⟩
+
+/-- A partial linear map equal to a restriction of scalars takes the values of the restricted
+map. -/
+theorem apply_of_eq_restrictScalars {B : E →ₗ.[S] F} {A : E →ₗ.[R] F}
+    (h : B = A.restrictScalars S) {x : E} (hx : x ∈ B.domain) (hxA : x ∈ A.domain) :
+    B ⟨x, hx⟩ = A ⟨x, hxA⟩ := by
+  rw [@(LinearPMap.ext_iff.mp h).2 x hx ((A.mem_restrictScalars_domain S).mpr hxA),
+    A.restrictScalars_apply S]
+
 end LinearPMap
 
 end
