@@ -49,6 +49,10 @@ linear maps used by the semigroup development.
   operator), dense and the whole space (self-adjoint operator).
 * `LinearPMap.IsFormalAdjoint.smul_sub_injective` and `IsSelfAdjoint.smul_sub_bijective`: a
   nonreal shift is injective, and bijective for a self-adjoint operator.
+* `LinearPMap.isSelfAdjoint_of_isFormalAdjoint_of_surjective_smul_sub`: the basic criterion for
+  self-adjointness: a densely defined symmetric map with `c - A` and `conj c - A` surjective is
+  self-adjoint; `isSelfAdjoint_of_isFormalAdjoint_of_surjective_real_smul_sub` is the case of one
+  real shift, by which semigroup resolvents produce self-adjoint generators.
 
 ## References
 
@@ -245,6 +249,53 @@ theorem _root_.IsSelfAdjoint.smul_sub_bijective [CompleteSpace E] {A : E →ₗ.
     (hA : IsSelfAdjoint A) {c : 𝕜} (hc : RCLike.im c ≠ 0) :
     Function.Bijective (fun x : A.domain => c • (x : E) - A x) :=
   ⟨hA.isFormalAdjoint.smul_sub_injective hc, hA.smul_sub_surjective hc⟩
+/-- **The basic criterion for self-adjointness.** A densely defined symmetric partial linear map
+`A` whose shifts `c - A` and `conj c - A` are both surjective is self-adjoint: for `y` in the
+domain of `A†`, surjectivity of `conj c - A` produces `x` in the domain of `A` with
+`(conj c - A†) (y - x) = 0`, so `y - x` is orthogonal to the range of `c - A`, which is everything.
+At `c = ± i` this is Reed–Simon, Theorem VIII.3. -/
+theorem isSelfAdjoint_of_isFormalAdjoint_of_surjective_smul_sub [CompleteSpace E]
+    {A : E →ₗ.[𝕜] E} (hdense : Dense (A.domain : Set E)) (hA : A.IsFormalAdjoint A) {c : 𝕜}
+    (hc : Function.Surjective fun x : A.domain => c • (x : E) - A x)
+    (hc' : Function.Surjective fun x : A.domain => (starRingEnd 𝕜) c • (x : E) - A x) :
+    IsSelfAdjoint A := by
+  have hle : A ≤ A† := hA.le_adjoint hdense
+  rw [isSelfAdjoint_def]
+  refine le_antisymm ?_ hle
+  refine ⟨fun y hy => ?_, fun x y hxy => (hle.2 hxy.symm).symm⟩
+  obtain ⟨x, hx⟩ := hc' ((starRingEnd 𝕜) c • y - A† ⟨y, hy⟩)
+  -- Beta-reduce the surjectivity witness.
+  dsimp only at hx
+  obtain ⟨x', hx'1, hx'2⟩ := LinearPMap.exists_of_le hle x
+  set z : A†.domain := ⟨y, hy⟩ - x' with hz_def
+  have hz : A† z = (starRingEnd 𝕜) c • (z : E) := by
+    rw [hz_def, map_sub, Submodule.coe_sub, smul_sub, ← hx'2, ← hx'1, ← sub_eq_zero]
+    rw [← sub_eq_zero] at hx
+    rw [← hx]
+    abel
+  have hzero : (z : E) = 0 := by
+    obtain ⟨u, hu⟩ := hc (z : E)
+    -- Beta-reduce the surjectivity witness.
+    dsimp only at hu
+    have h : inner 𝕜 (z : E) (c • (u : E) - A u) = 0 := by
+      rw [inner_sub_right, inner_smul_right, ← adjoint_isFormalAdjoint hdense z u, hz,
+        inner_smul_left, RCLike.conj_conj, sub_self]
+    rw [hu] at h
+    exact inner_self_eq_zero.mp h
+  have hyx : y = (x : E) := by
+    rw [hz_def, Submodule.coe_sub, ← hx'1, sub_eq_zero] at hzero
+    exact hzero
+  rw [hyx]
+  exact x.property
+
+/-- A densely defined symmetric partial linear map with one surjective real shift `r - A` is
+self-adjoint: the two shifts of the basic criterion coincide. -/
+theorem isSelfAdjoint_of_isFormalAdjoint_of_surjective_real_smul_sub [CompleteSpace E]
+    {A : E →ₗ.[𝕜] E} (hdense : Dense (A.domain : Set E)) (hA : A.IsFormalAdjoint A) (r : ℝ)
+    (hr : Function.Surjective fun x : A.domain => (r : 𝕜) • (x : E) - A x) :
+    IsSelfAdjoint A :=
+  isSelfAdjoint_of_isFormalAdjoint_of_surjective_smul_sub hdense hA hr
+    (by simpa only [RCLike.conj_ofReal] using hr)
 
 end LinearPMap
 
