@@ -8,6 +8,7 @@ module
 public import TauCeti.Geometry.Lie.Subgroup.LieAlgebra
 public import Mathlib.Algebra.Lie.Abelian
 public import Mathlib.GroupTheory.Subgroup.Centralizer
+import TauCeti.Geometry.Lie.Adjoint.Exponential.Formula
 import TauCeti.Geometry.Lie.Exponential.Classification
 import TauCeti.Geometry.Lie.Exponential.CommutativeGroup
 import TauCeti.Geometry.Lie.Subgroup.Differential
@@ -48,6 +49,8 @@ subalgebra they generate by `TauCeti.Lie.lieSubalgebraOfSubgroup_induction`.
   abelian.
 * `TauCeti.Lie.image_lieExp_lieSubalgebraOfSubgroup_of_isConnected`: a closed connected
   commutative subgroup is the exponential image of its Lie algebra.
+* `Subgroup.lieExpKer`: the kernel of the exponential of a commutative subgroup, as an additive
+  subgroup of its Lie algebra.
 
 ## References
 
@@ -170,5 +173,26 @@ theorem image_lieExp_lieSubalgebraOfSubgroup_of_isConnected {K : Subgroup G} [Is
   rw [hX, EmbeddedLieSubgroupData.subtypeVal_apply,
     ← EmbeddedLieSubgroupData.lieMapSubtypeVal_apply] at hnat
   exact hnat.symm
+
+/-- **The kernel of the exponential of a commutative subgroup**: the derivations in `Lie(K)`
+which the exponential sends to the identity. -/
+def _root_.Subgroup.lieExpKer (K : Subgroup G) [IsMulCommutative K] :
+    AddSubgroup (lieSubalgebraOfSubgroup (I := I) K).toSubmodule where
+  carrier := {X | lieExp (I := I) (X : LeftInvariantDerivation I G) = 1}
+  zero_mem' := by
+    simp only [Set.mem_ofPred_eq, Submodule.coe_zero, lieExp_zero]
+  add_mem' {X Y} hX hY := by
+    simp only [Set.mem_ofPred_eq] at hX hY ⊢
+    rw [Submodule.coe_add, lieExp_add_of_lie_eq_zero
+      (lie_eq_zero_of_mem_lieSubalgebraOfSubgroup X.2 Y.2), hX, hY, mul_one]
+  neg_mem' {X} hX := by
+    simp only [Set.mem_ofPred_eq] at hX ⊢
+    rw [Submodule.coe_neg, lieExp_neg, hX, inv_one]
+
+@[simp]
+theorem _root_.Subgroup.mem_lieExpKer {K : Subgroup G} [IsMulCommutative K]
+    {X : (lieSubalgebraOfSubgroup (I := I) K).toSubmodule} :
+    X ∈ K.lieExpKer (I := I) ↔ lieExp (I := I) (X : LeftInvariantDerivation I G) = 1 :=
+  Iff.rfl
 
 end TauCeti.Lie

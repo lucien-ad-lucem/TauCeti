@@ -55,6 +55,7 @@ series of a profinite group.
 * `Subgroup.instIsClosedTopologicalClosure`: the topological closure of a subgroup is closed.
 * `Subgroup.isClosed_center`: the center of a Hausdorff group with separately continuous
   multiplication is closed.
+* `Subgroup.isClosed_normalizer`: the normalizer of a closed subgroup is closed.
 * `Subgroup.dense_iff_topologicalClosure_eq_top`: a subgroup is dense exactly when its topological
   closure is everything; `IsClosed.subgroup_topologicalClosure_eq`: a closed subgroup is its own
   topological closure.
@@ -154,6 +155,25 @@ instance isClosed_center [SeparatelyContinuousMul G] [T2Space G] :
     IsClosed (center G : Set G) := by
   simpa only [coe_center, Set.centralizer_univ] using
     Set.isClosed_centralizer (Set.univ : Set G)
+
+/-- The normalizer of a closed subgroup of a group with continuous multiplication and inversion
+is closed. -/
+theorem isClosed_normalizer [ContinuousMul G] [ContinuousInv G] {K : Subgroup G}
+    (hK : IsClosed (K : Set G)) : IsClosed (normalizer (K : Set G) : Set G) := by
+  -- `g` normalizes `K` exactly when `g K g⁻¹ ⊆ K` and `g⁻¹ K g ⊆ K`, and each of these is an
+  -- intersection over `k ∈ K` of preimages of `K` under continuous maps.
+  have h : (normalizer (K : Set G) : Set G) =
+      (⋂ k ∈ K, {g : G | g * k * g⁻¹ ∈ K}) ∩ ⋂ k ∈ K, {g : G | g⁻¹ * k * g ∈ K} := by
+    ext g
+    simp only [SetLike.mem_coe, mem_normalizer_iff, Set.mem_inter_iff, Set.mem_iInter,
+      Set.mem_ofPred_eq]
+    refine ⟨fun hg => ⟨fun k hk => (hg k).mp hk, fun k hk => (hg _).mpr ?_⟩,
+      fun hg k => ⟨hg.1 k, fun hk => ?_⟩⟩
+    · simpa only [mul_assoc, mul_inv_cancel_left, mul_inv_cancel, mul_one] using hk
+    · simpa only [mul_assoc, inv_mul_cancel_left, inv_mul_cancel, mul_one] using hg.2 _ hk
+  rw [h]
+  exact (isClosed_biInter fun k _ => hK.preimage (by fun_prop)).inter
+    (isClosed_biInter fun k _ => hK.preimage (by fun_prop))
 
 /-- The inclusion of `U ⊓ D` into `U`, where `U ⊓ D` is presented as the subgroup `U.subgroupOf D`
 of `D`, is continuous. -/
