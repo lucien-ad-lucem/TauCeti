@@ -6,7 +6,10 @@ Authors: The Tau Ceti contributors
 module
 
 public import TauCeti.Geometry.Lie.Subgroup.Commutative
+public import Mathlib.Analysis.Complex.Circle
 import TauCeti.Geometry.Lie.Adjoint.Exponential.Formula
+import TauCeti.Geometry.Lie.Exponential.CommutativeGroup
+import TauCeti.Geometry.Lie.Subgroup.Differential
 import Mathlib.GroupTheory.NoncommCoprod
 
 /-!
@@ -21,6 +24,8 @@ finite-dimensional real Lie group `G`:
 * for a maximal torus `T` of a compact `G`, the centralizer of `T` has the same Lie algebra as `T`,
   and `Lie(T)` is a maximal abelian Lie subalgebra of `𝔤`: a derivation that brackets to zero with
   `Lie(T)` lies in `Lie(T)`.
+* a torus of dimension `r` is isomorphic to the product of `r` circles as a topological group,
+  since a torus is a compact connected commutative Lie group (`torusContinuousMulEquiv`).
 
 ## Main definitions
 
@@ -38,6 +43,8 @@ finite-dimensional real Lie group `G`:
   that brackets to zero with `Lie(T)` lies in `Lie(T)`.
 * `TauCeti.Lie.IsMaximalTorus.eq_lieSubalgebraOfSubgroup_of_isLieAbelian`: `Lie(T)` is a maximal
   abelian Lie subalgebra of `𝔤`.
+* `TauCeti.Lie.IsTorus.nonempty_continuousMulEquiv_pi_circle`: a torus is isomorphic, as a
+  topological group, to the product of circles indexed by its dimension.
 
 ## References
 
@@ -179,5 +186,29 @@ theorem IsMaximalTorus.eq_lieSubalgebraOfSubgroup_of_isLieAbelian {T : Subgroup 
       have htriv := trivial_lie_zero 𝔞 𝔞 (⟨X, hX⟩ : 𝔞) ⟨Y, h𝔞 hY⟩
       simpa only [Subtype.ext_iff, LieSubalgebra.coe_bracket, ZeroMemClass.coe_zero] using htriv)
     h𝔞
+
+section Circle
+
+omit [CompactSpace G] in
+/-- **A torus is a product of circles**: a torus of dimension `r` is isomorphic, as a topological
+group, to the product of `r` circles. -/
+theorem IsTorus.nonempty_continuousMulEquiv_pi_circle {T : Subgroup G} (hT : IsTorus T) :
+    Nonempty ((Fin (Module.finrank ℝ (lieSubalgebraOfSubgroup (I := I) T)) → Circle) ≃ₜ* T) := by
+  obtain ⟨d⟩ := nonempty_embeddedLieSubgroupData_lieSubalgebraOfSubgroup_of_isClosed (I := I)
+    hT.isClosed
+  let _ : ChartedSpace (lieSubalgebraOfSubgroup (I := I) T).toSubmodule T := d.chartedSpace
+  let _ : LieGroup 𝓘(ℝ, (lieSubalgebraOfSubgroup (I := I) T).toSubmodule) ∞ T := d.lieGroup
+  have _ : CompactSpace T := isCompact_iff_compactSpace.mp hT.isCompact
+  have _ : PreconnectedSpace T := isPreconnected_iff_preconnectedSpace.mp hT.isConnected.2
+  have _ : IsMulCommutative T := hT.isMulCommutative
+  let _ : IsTopologicalGroup G := topologicalGroup_of_lieGroup I ∞
+  have _ : FiniteDimensional ℝ (LeftInvariantDerivation I G) :=
+    finiteDimensional_leftInvariantDerivation
+      (ContMDiffMul.isInteriorPoint (I := I) (n := ∞) (by simp) (1 : G))
+  rw [← d.lieEquivLieSubalgebraOfSubgroup.toLinearEquiv.finrank_eq]
+  exact ⟨torusContinuousMulEquiv (I := 𝓘(ℝ, (lieSubalgebraOfSubgroup (I := I) T).toSubmodule))
+    (G := T)⟩
+
+end Circle
 
 end TauCeti.Lie
