@@ -11,6 +11,7 @@ public import Mathlib.GroupTheory.Subgroup.Centralizer
 import TauCeti.Geometry.Lie.Exponential.Classification
 import TauCeti.Geometry.Lie.Exponential.CommutativeGroup.Basic
 import TauCeti.Geometry.Lie.Subgroup.Differential
+import TauCeti.Geometry.Lie.Subgroup.Image
 
 /-!
 # The Lie algebra of a commutative subgroup
@@ -48,6 +49,9 @@ subalgebra they generate by `TauCeti.Lie.lieSubalgebraOfSubgroup_induction`.
   abelian.
 * `TauCeti.Lie.image_lieExp_lieSubalgebraOfSubgroup_of_isConnected`: a closed connected
   commutative subgroup is the exponential image of its Lie algebra.
+
+* `TauCeti.Lie.mem_centralizer_iff_forall_Ad_apply_eq_self`: an element centralizes a closed
+  connected subgroup exactly when its adjoint action fixes its Lie algebra pointwise.
 
 ## References
 
@@ -96,6 +100,37 @@ theorem Ad_apply_eq_self_of_mem_centralizer {K : Subgroup G} {g : G}
   | add Y Z _ _ hY hZ => rw [map_add, hY, hZ]
   | smul c Y _ hY => rw [map_smul, hY]
   | lie Y Z _ _ hY hZ => rw [LieEquiv.map_lie, hY, hZ]
+
+/-- An element centralizes a closed connected subgroup exactly when its adjoint action fixes
+the subgroup's Lie algebra pointwise. -/
+theorem mem_centralizer_iff_forall_Ad_apply_eq_self {K : Subgroup G}
+    (hK : IsClosed (K : Set G)) (hconn : IsPreconnected (K : Set G)) (g : G) :
+    g ∈ Subgroup.centralizer (K : Set G) ↔
+      ∀ X ∈ lieSubalgebraOfSubgroup (I := I) K, Ad (I := I) g X = X := by
+  refine ⟨fun hg _ hX => Ad_apply_eq_self_of_mem_centralizer hg hX, ?_⟩
+  intro h
+  obtain ⟨d⟩ := nonempty_embeddedLieSubgroupData_lieSubalgebraOfSubgroup_of_isClosed (I := I) hK
+  let _ : ChartedSpace (lieSubalgebraOfSubgroup (I := I) K).toSubmodule K := d.chartedSpace
+  let _ : LieGroup 𝓘(ℝ, (lieSubalgebraOfSubgroup (I := I) K).toSubmodule) ∞ K := d.lieGroup
+  let _ : FiniteDimensional ℝ (LeftInvariantDerivation I G) :=
+    finiteDimensional_leftInvariantDerivation
+      (ContMDiffMul.isInteriorPoint (I := I) (n := ∞) (by simp) (1 : G))
+  let _ : IsTopologicalGroup G := topologicalGroup_of_lieGroup I ∞
+  let _ : PreconnectedSpace K := isPreconnected_iff_preconnectedSpace.mp hconn
+  have hle : MonoidHom.range d.subtypeVal.toMonoidHom ≤ Subgroup.centralizer ({g} : Set G) := by
+    apply (d.subtypeVal.range_le_iff_forall_lieExp_mem _).mpr
+    intro X
+    rw [Subgroup.mem_centralizer_singleton_iff]
+    have hX : lieMap d.subtypeVal X ∈ lieSubalgebraOfSubgroup (I := I) K := by
+      simpa only [d.lieMapSubtypeVal_apply] using
+        d.lieMapSubtypeVal_mem_lieSubalgebraOfSubgroup X
+    have hconj := conj_lieExp (I := I) g (lieMap d.subtypeVal X)
+    rw [h _ hX] at hconj
+    exact (mul_inv_eq_iff_eq_mul.mp hconj).symm
+  rw [Subgroup.mem_centralizer_iff]
+  intro k hk
+  have hk' := hle ⟨(⟨k, hk⟩ : K), d.subtypeVal_apply _⟩
+  exact Subgroup.mem_centralizer_singleton_iff.mp hk'
 
 /-- **The Lie algebra of the centralizer of `K` brackets to zero with `Lie(K)`**: for
 `X ∈ Lie(centralizer K)` and `Y ∈ Lie(K)`, `⁅X, Y⁆ = 0`. -/
@@ -170,5 +205,6 @@ theorem image_lieExp_lieSubalgebraOfSubgroup_of_isConnected {K : Subgroup G} [Is
   rw [hX, EmbeddedLieSubgroupData.subtypeVal_apply,
     ← EmbeddedLieSubgroupData.lieMapSubtypeVal_apply] at hnat
   exact hnat.symm
+
 
 end TauCeti.Lie
