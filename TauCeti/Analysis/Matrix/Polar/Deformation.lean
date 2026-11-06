@@ -9,6 +9,7 @@ public import TauCeti.Analysis.Matrix.Polar
 public import TauCeti.Analysis.Matrix.Exponential.Log
 public import Mathlib.Geometry.Manifold.Instances.UnitsOfNormedAlgebra
 public import Mathlib.Topology.Homotopy.Basic
+import TauCeti.Geometry.Manifold.Instances.UnitsOfNormedAlgebra
 
 /-!
 # Smooth polar deformation of the general linear group
@@ -49,11 +50,14 @@ attribute [local instance] Matrix.l2OpNormedAlgebraReal
 theorem contMDiff_sqrt_mul_star {k : ℕ∞ω} :
     ContMDiff 𝓘(ℝ, Matrix n n 𝕜) 𝓘(ℝ, Matrix n n 𝕜) k
       (fun A : GL n 𝕜 ↦ CFC.sqrt ((A : Matrix n n 𝕜) * star (A : Matrix n n 𝕜))) := by
-  have hstar := (starL' ℝ : Matrix n n 𝕜 ≃L[ℝ] Matrix n n 𝕜).contDiff (n := k)
+  have hstar : ContMDiff 𝓘(ℝ, Matrix n n 𝕜) 𝓘(ℝ, Matrix n n 𝕜) k
+      (fun A : GL n 𝕜 ↦ star (A : Matrix n n 𝕜)) := by
+    simpa only [Function.comp_def, Units.coe_star] using
+      Units.contMDiff_val.comp (Units.contMDiff_star (𝕜 := ℝ))
   refine ((Matrix.contDiffOn_sqrt (n := n) (𝕜 := 𝕜) (k := k)).restrict_scalars ℝ).contMDiffOn
     |>.comp_contMDiff
     (contDiff_mul.comp_contMDiff
-      (Units.contMDiff_val.prodMk_space (hstar.comp_contMDiff Units.contMDiff_val))) ?_
+      (Units.contMDiff_val.prodMk_space hstar)) ?_
   intro A
   exact isStrictlyPositive_iff_posDef.1 (Units.isStrictlyPositive_mul_star A)
 
