@@ -9,6 +9,7 @@ public import Mathlib.Geometry.Manifold.Algebra.LieGroup
 public import TauCeti.AlgebraicTopology.UniversalCover.Group
 public import TauCeti.AlgebraicTopology.UniversalCover.Classification.Existence
 public import TauCeti.Geometry.Manifold.Instances.Comap
+import TauCeti.Geometry.Manifold.Algebra.LieGroup
 
 /-!
 # Universal covers of Lie groups and subgroup covers of manifolds
@@ -140,11 +141,21 @@ variable {G : Type*} [Group G] [TopologicalSpace G] [IsTopologicalGroup G] [Char
 
 /-- The universal cover of a Lie group, based at the identity, is a Lie group: its multiplication
 and inversion are continuous and lie over the `C^n` multiplication and inversion of `G`. -/
-instance instLieGroup : LieGroup I n (UniversalCover (1 : G)) where
-  contMDiff_mul := contMDiff_iff.2 ⟨continuous_mul,
-    ((contMDiff_proj (1 : G)).comp contMDiff_fst).mul ((contMDiff_proj (1 : G)).comp contMDiff_snd)⟩
-  contMDiff_inv :=
-    contMDiff_iff.2 ⟨continuous_inv, ((contMDiff_proj (1 : G)).comp contMDiff_id).inv⟩
+instance instLieGroup : LieGroup I n (UniversalCover (1 : G)) := by
+  have hp : IsLocalHomeomorph
+      (projHom : UniversalCover (1 : G) →ₜ* G) := by
+    simpa only [coe_projHom] using
+      (isCoveringMap (1 : G)).isLocalHomeomorph
+  -- The atlas depends on the underlying projection, independent of its homomorphism bundle.
+  have hcharts : hp.chartedSpaceComap (H := H) =
+      (isCoveringMap (1 : G)).isLocalHomeomorph.chartedSpaceComap (H := H) := by
+    simp only [coe_projHom]
+  have hgroup : let _ : ChartedSpace H (UniversalCover (1 : G)) := hp.chartedSpaceComap
+      LieGroup I n (UniversalCover (1 : G)) :=
+    IsLocalHomeomorph.lieGroup_chartedSpaceComap (I := I) (n := n)
+      (projHom : UniversalCover (1 : G) →ₜ* G) hp
+  rw [hcharts] at hgroup
+  exact hgroup
 
 end LieGroup
 
