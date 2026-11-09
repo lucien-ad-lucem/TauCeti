@@ -7,6 +7,8 @@ module
 
 public import Mathlib.Analysis.Calculus.FDeriv.Symmetric
 public import Mathlib.Geometry.Manifold.Algebra.LieGroup
+public import TauCeti.Geometry.Manifold.ContMDiff.RestrictScalars
+public import TauCeti.Geometry.Manifold.IsManifold.RestrictScalars
 
 /-!
 # Basic facts about Lie groups
@@ -19,6 +21,14 @@ This file records lightweight consequences of the Lie-group regularity hierarchy
 * `LieGroup.minSmoothness_of_isRCLikeNormedField`: over a field satisfying
   `IsRCLikeNormedField`, a `Cⁿ` Lie group is a `C^(minSmoothness 𝕜 n)` Lie group; Mathlib's
   tangent Lie algebra `GroupLieAlgebra` assumes regularity `minSmoothness 𝕜 3`.
+* `LieGroup.restrictScalars`: a Lie group over a normed field extension is a Lie group over
+  the smaller field, with the same carrier and charts, for a boundaryless model.
+
+## References
+
+* J. Hilgert and K.-H. Neeb, *Structure and Geometry of Lie Groups*, Springer Monographs in
+  Mathematics (2012), §15.1, Definition 15.1.1, for a complex Lie group as a real Lie group
+  with a compatible complex Lie algebra.
 -/
 
 public section
@@ -45,3 +55,17 @@ deliberately not a global instance, so the downgrade applies only in files that 
 theorem LieGroup.minSmoothness_of_isRCLikeNormedField [IsRCLikeNormedField 𝕜] {n : ℕ∞ω}
     [LieGroup I n G] : LieGroup I (minSmoothness 𝕜 n) G := by
   rwa [_root_.minSmoothness_of_isRCLikeNormedField]
+
+variable (𝕜₀ : Type*) [NontriviallyNormedField 𝕜₀] [NormedAlgebra 𝕜₀ 𝕜]
+  [NormedSpace 𝕜₀ E] [IsScalarTower 𝕜₀ 𝕜 E] [I.Boundaryless] {n : ℕ∞ω}
+
+/-- A Lie group remains a Lie group after restricting scalars along a normed field extension.
+The topology, carrier and charted space stay fixed; the model becomes `I.restrictScalars 𝕜₀`. -/
+theorem LieGroup.restrictScalars [LieGroup I n G] : LieGroup (I.restrictScalars 𝕜₀) n G where
+  toIsManifold := I.isManifold_restrictScalars 𝕜₀ inferInstance
+  contMDiff_mul := by
+    have h : ContMDiff (I.prod I) I n (fun p : G × G ↦ p.1 * p.2) := _root_.contMDiff_mul I n
+    simpa only [ModelWithCorners.restrictScalars_prod] using h.restrictScalars 𝕜₀
+  contMDiff_inv := by
+    have h : ContMDiff I I n (fun g : G ↦ g⁻¹) := _root_.contMDiff_inv I n
+    exact h.restrictScalars 𝕜₀
