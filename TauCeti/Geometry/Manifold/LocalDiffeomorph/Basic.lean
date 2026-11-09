@@ -69,6 +69,8 @@ serve as partial diffeomorphisms in constructions of local submanifolds.
   is a maximal-atlas chart.
 * `PartialDiffeomorph.trans_mem_maximalAtlas`: a partial diffeomorphism followed by a
   maximal-atlas chart is a maximal-atlas chart.
+* `PartialDiffeomorph.exists_transition`: charts taking two points to the same coordinate
+  induce a local change of parameters intertwining the charts.
 * `IsLocalDiffeomorphAt.exists_mem_maximalAtlas_eventuallyEq`: a maximal-atlas chart pulls back
   along a local diffeomorphism to a maximal-atlas chart.
 * `IsLocalDiffeomorphAt.exists_mem_maximalAtlas_extend_eventuallyEq`: the pulled back chart can
@@ -91,6 +93,51 @@ noncomputable section
 
 open Set
 open scoped Manifold Topology
+
+namespace PartialDiffeomorph
+
+open scoped ContDiff
+
+variable {𝕜 : Type*} [NontriviallyNormedField 𝕜]
+  {E : Type*} [NormedAddCommGroup E] [NormedSpace 𝕜 E]
+  {F : Type*} [NormedAddCommGroup F] [NormedSpace 𝕜 F]
+  {G : Type*} [NormedAddCommGroup G] [NormedSpace 𝕜 G]
+  {H : Type*} [TopologicalSpace H] {H' : Type*} [TopologicalSpace H']
+  {H'' : Type*} [TopologicalSpace H''] {I : ModelWithCorners 𝕜 E H}
+  {J : ModelWithCorners 𝕜 F H'} {K : ModelWithCorners 𝕜 G H''}
+  {M : Type*} [TopologicalSpace M] [ChartedSpace H M]
+  {N : Type*} [TopologicalSpace N] [ChartedSpace H' N]
+  {P : Type*} [TopologicalSpace P] [ChartedSpace H'' P] {n : ℕ∞ω}
+
+/-- Two charts taking specified source points to the same coordinate induce a local change of
+parameters. The transition stays in both chart domains and intertwines the coordinate maps. -/
+theorem exists_transition (c : PartialDiffeomorph I K M P n)
+    (d : PartialDiffeomorph J K N P n) {x : M} {y : N}
+    (hx : x ∈ c.source) (hy : y ∈ d.source) (hxy : c x = d y) :
+    ∃ e : PartialDiffeomorph I J M N n,
+      x ∈ e.source ∧ e x = y ∧ e.source ⊆ c.source ∧
+        MapsTo e e.source d.source ∧ ∀ z ∈ e.source, d (e z) = c z := by
+  have hsource : (c.trans d.symm).source = c.source ∩ c ⁻¹' d.target := by
+    simp [trans_toPartialEquiv, symm_toPartialEquiv]
+  have hcoe (z : M) : (c.trans d.symm) z = d.symm (c z) := by
+    simp [trans_toPartialEquiv, symm_toPartialEquiv]
+  refine ⟨c.trans d.symm, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [hsource]
+    refine ⟨hx, ?_⟩
+    rw [mem_preimage, hxy]
+    exact d.map_source hy
+  · rw [hcoe, hxy]
+    exact d.left_inv hy
+  · intro z hz
+    exact (hsource ▸ hz).1
+  · intro z hz
+    rw [hcoe]
+    exact d.map_target (hsource ▸ hz).2
+  · intro z hz
+    rw [hcoe]
+    exact d.right_inv (hsource ▸ hz).2
+
+end PartialDiffeomorph
 
 namespace OpenPartialHomeomorph
 
