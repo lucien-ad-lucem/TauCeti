@@ -63,6 +63,9 @@ composite is not built here.
 
 ## Main results
 
+* `LinearMap.BilinForm.lieInvariant.compl₁₂`: pullback along a Lie homomorphism preserves
+  invariance of bilinear forms.
+
 * `TauCeti.mem_skewAdjointMatricesLieSubalgebra_toMatrix_iff`: matrix skew-adjointness for a Gram
   matrix is equivalent to basis-free skew-adjointness.
 * `skewAdjointLieSubalgebra.apply_left`: a skew-adjoint endomorphism moves across its
@@ -106,6 +109,15 @@ here; only from `ad_mem_skewAdjointSubmodule` on, where the adjoint action enter
 -/
 
 public section
+
+/-- Pullback along a Lie homomorphism preserves invariance of a bilinear form. -/
+theorem LinearMap.BilinForm.lieInvariant.compl₁₂ {R L L' : Type*} [CommRing R]
+    [LieRing L] [LieAlgebra R L] [LieRing L'] [LieAlgebra R L']
+    {B : LinearMap.BilinForm R L} (hB : B.lieInvariant L) (f : L' →ₗ⁅R⁆ L) :
+    LinearMap.BilinForm.lieInvariant L' (B.compl₁₂ f.toLinearMap f.toLinearMap) := by
+  intro x y z
+  simpa only [LinearMap.compl₁₂_apply, LieHom.map_lie, LieHom.coe_toLinearMap] using
+    hB (f x) (f y) (f z)
 
 open LinearMap (BilinForm)
 
