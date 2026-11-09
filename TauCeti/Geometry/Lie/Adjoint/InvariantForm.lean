@@ -10,6 +10,7 @@ public import TauCeti.Geometry.Lie.Adjoint.Derivation
 public import TauCeti.Geometry.Lie.Adjoint.Infinitesimal
 public import TauCeti.Geometry.Lie.Adjoint.Representation.Basic
 public import TauCeti.RepresentationTheory.InvariantForm
+public import TauCeti.RepresentationTheory.Compact.BilinearForm
 import TauCeti.Geometry.Lie.Exponential.Derivative.Basic
 import TauCeti.Geometry.Lie.Subgroup.LieAlgebra
 import TauCeti.Geometry.Manifold.MFDeriv.Constancy
@@ -36,6 +37,8 @@ It uses `TauCeti.Lie.hasDerivAt_tangentAd_mulInvariantExp_smul_apply_zero` for `
   under `ad`, in the sense of Mathlib's `LinearMap.BilinForm.lieInvariant`.
 * `TauCeti.Lie.exists_isSymm_bilinForm_Ad_invariant`: the Lie algebra of a compact Lie group has
   an `Ad`-invariant symmetric positive-definite bilinear form.
+* `TauCeti.Lie.exists_isSymm_bilinForm_Ad_invariant_eq_integral`: an invariant form obtained
+  from any given symmetric positive form, with the exact inverse-adjoint Haar formula.
 * `LeftInvariantDerivation.exists_Ad_lie_eq_zero`: **Hunt's lemma**, for `X Y : 𝔤` in the Lie
   algebra of a compact Lie group, some adjoint translate of `X` brackets to zero with `Y`.
 * `TauCeti.Lie.lieInvariant_iff_adjoint_invariant`: on a connected group, tangent bilinear forms
@@ -47,6 +50,8 @@ It uses `TauCeti.Lie.hasDerivAt_tangentAd_mulInvariantExp_smul_apply_zero` for `
 
 ## References
 
+* J. Hilgert and K.-H. Neeb, *Structure and Geometry of Lie Groups*, Springer Monographs in
+  Mathematics (2012), Lemma 10.4.14, for averaging an arbitrary starting inner product.
 * J. M. Lee, *Introduction to Riemannian Manifolds*, second edition, Chapter 3.
 * J. Milnor, *Curvatures of left invariant metrics on Lie groups*, Advances in Math. 21
   (1976), 293–329.
@@ -113,6 +118,47 @@ theorem exists_isSymm_bilinForm_Ad_invariant [CompactSpace G] :
   let _ : IsTopologicalGroup G := topologicalGroup_of_lieGroup I ∞
   exact ContRepresentation.exists_isSymm_bilinForm_invariant _
     (contMDiff_continuousAdjointRepresentation (I := I) (G := G)).continuous
+
+/-- Averaging any given symmetric positive real form produces a symmetric positive
+`Ad`-invariant and infinitesimally invariant form, with the prescribed inverse-adjoint Haar formula.
+The initial form is part of the input, rather than an auxiliary choice. -/
+theorem exists_isSymm_bilinForm_Ad_invariant_eq_integral [CompactSpace G]
+    [MeasurableSpace G] [BorelSpace G]
+    (B₀ : LinearMap.BilinForm ℝ (LeftInvariantDerivation I G))
+    (hsymm : B₀.IsSymm) (hpos : B₀.toQuadraticMap.PosDef) :
+    letI : IsTopologicalGroup G := topologicalGroup_of_lieGroup I ∞
+    ∃ B : LinearMap.BilinForm ℝ (LeftInvariantDerivation I G),
+      B.IsSymm ∧ B.toQuadraticMap.PosDef ∧
+      Representation.IsInvariantForm
+        (continuousAdjointRepresentation (I := I) (G := G)).toRepresentation B ∧
+      B.lieInvariant (LeftInvariantDerivation I G) ∧
+      ∀ X Y, B X Y = ∫ g : G,
+        B₀ (Ad (I := I) g⁻¹ X) (Ad (I := I) g⁻¹ Y) ∂haarProb G := by
+  let : IsTopologicalGroup G := topologicalGroup_of_lieGroup I ∞
+  let : FiniteDimensional ℝ (LeftInvariantDerivation I G) :=
+    finiteDimensional_leftInvariantDerivation BoundarylessManifold.isInteriorPoint
+  let π := continuousAdjointRepresentation (I := I) (G := G)
+  have hπ : Continuous π := (contMDiff_continuousAdjointRepresentation (I := I) (G := G)).continuous
+  let b₀ := B₀.toContinuousBilinearMap
+  have hb₀symm : b₀.toBilinForm.IsSymm := by
+    constructor
+    intro X Y
+    simpa only [b₀, ContinuousLinearMap.toBilinForm_apply,
+      LinearMap.toContinuousBilinearMap_apply] using hsymm.eq X Y
+  have hb₀pos : b₀.toBilinForm.toQuadraticMap.PosDef := by
+    intro X hX
+    simpa only [LinearMap.BilinMap.toQuadraticMap_apply,
+      ContinuousLinearMap.toBilinForm_apply, b₀, LinearMap.toContinuousBilinearMap_apply]
+      using hpos X hX
+  let b := π.averageBilinearForm hπ b₀
+  have hInv : Representation.IsInvariantForm π.toRepresentation b.toBilinForm :=
+    π.isInvariantForm_averageBilinearForm hπ b₀
+  refine ⟨b.toBilinForm, π.isSymm_averageBilinearForm hπ b₀ hb₀symm,
+    π.posDef_averageBilinearForm hπ b₀ hb₀pos, hInv, lieInvariant_of_isInvariantForm hInv, ?_⟩
+  intro X Y
+  simpa only [ContinuousLinearMap.toBilinForm_apply, π, b, b₀,
+    continuousAdjointRepresentation_apply, LinearMap.toContinuousBilinearMap_apply] using
+    π.averageBilinearForm_apply hπ b₀ X Y
 
 /-- The tangent Lie algebra of a compact Lie group has a continuous symmetric positive form
 invariant under the adjoint action. No connectedness or boundaryless-model hypothesis is needed. -/
