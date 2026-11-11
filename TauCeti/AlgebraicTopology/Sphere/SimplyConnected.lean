@@ -329,49 +329,6 @@ private theorem exists_nodeInterp_close {x y : sphere (0 : E) 1} (γ : Path x y)
   · simp only [nodeInterp_zero, hnode, hnodeParam0, γ.source]
   · simp only [nodeInterp_one, hnode, hnodeParamN, γ.target]
 
-/-- A path on the unit sphere is homotopic, with fixed endpoints, to the radial projection of
-any interpolation that stays within distance one of it and has the same endpoints. -/
-private theorem exists_homotopic_normalize_nodeInterp {x y : sphere (0 : E) 1} (γ : Path x y)
-    {N : ℕ} {node : ℕ → E}
-    (hLclose : ∀ t : I, ‖nodeInterp N node t - ((γ t : sphere (0 : E) 1) : E)‖ < 1)
-    (hL0 : nodeInterp N node 0 = ((x : sphere (0 : E) 1) : E))
-    (hL1 : nodeInterp N node 1 = ((y : sphere (0 : E) 1) : E)) :
-    ∃ γ' : Path x y, γ.Homotopic γ' ∧
-      ∀ t, ((γ' t : sphere (0 : E) 1) : E) = normalize (nodeInterp N node t) := by
-  have hγnorm : ∀ t, ‖((γ t : sphere (0 : E) 1) : E)‖ = 1 := fun t =>
-    mem_sphere_zero_iff_norm.mp (γ t).2
-  have hLne : ∀ t : I, nodeInterp N node t ≠ 0 := by
-    intro t ht
-    have hlt := hLclose t
-    rw [ht, zero_sub, norm_neg, hγnorm t] at hlt
-    exact lt_irrefl 1 hlt
-  -- The comparison path.
-  have hcontL : Continuous (nodeInterp N node) := continuous_nodeInterp N node
-  let Lsphere := normalizeToSphere (nodeInterp N node) hcontL hLne
-  have hx1 : ‖((x : sphere (0 : E) 1) : E)‖ = 1 := mem_sphere_zero_iff_norm.mp x.2
-  let γ' : Path x y :=
-    { toFun := Lsphere
-      continuous_toFun := Lsphere.continuous
-      source' := Subtype.ext (by
-        rw [coe_normalizeToSphere_apply, hL0, normalize_eq_self_of_norm_eq_one hx1])
-      target' := Subtype.ext (by
-        rw [coe_normalizeToSphere_apply, hL1,
-          normalize_eq_self_of_norm_eq_one (mem_sphere_zero_iff_norm.mp y.2)]) }
-  -- The straight-line homotopy between the path and the comparison path misses the origin.
-  have hGne : ∀ z : I × I,
-      (1 - (z.1 : ℝ)) • ((γ z.2 : sphere (0 : E) 1) : E) + (z.1 : ℝ) • nodeInterp N node z.2
-        ≠ 0 := by
-    intro z hz
-    have hmem := (convex_ball ((γ z.2 : sphere (0 : E) 1) : E) 1)
-      (by simp : ((γ z.2 : sphere (0 : E) 1) : E) ∈ ball (γ z.2 : E) 1)
-      (by simpa [mem_ball, dist_eq_norm] using hLclose z.2)
-      (sub_nonneg.mpr (unitInterval.le_one z.1)) (unitInterval.nonneg z.1)
-      (sub_add_cancel 1 (z.1 : ℝ))
-    simp [hz, mem_ball, hγnorm] at hmem
-  have hγ' : ∀ t, ((γ' t : sphere (0 : E) 1) : E) = normalize (nodeInterp N node t) := fun t =>
-    coe_normalizeToSphere_apply (nodeInterp N node) hcontL hLne t
-  exact ⟨γ', γ.homotopic_of_segment_ne_zero γ' (nodeInterp N node) hγ' hGne, hγ'⟩
-
 /-- In a real vector space of rank greater than two, finitely many two-vector spans do not
 cover: some nonzero vector lies in none of them. -/
 private theorem exists_ne_zero_notMem_span_pair (h : 2 < Module.rank ℝ E) (N : ℕ)
@@ -398,7 +355,8 @@ theorem _root_.Path.exists_homotopic_notMem_range {x y : sphere (0 : E) 1}
     (γ : Path x y) (h : 2 < Module.rank ℝ E) :
     ∃ γ' : Path x y, γ.Homotopic γ' ∧ ∃ p : sphere (0 : E) 1, p ∉ Set.range γ' := by
   obtain ⟨N, node, hLclose, hL0, hL1⟩ := exists_nodeInterp_close γ
-  obtain ⟨γ', hsquare, hγ'⟩ := exists_homotopic_normalize_nodeInterp γ hLclose hL0 hL1
+  obtain ⟨γ', hsquare, hγ'⟩ := γ.exists_homotopic_normalize_of_norm_sub_lt_one
+    (nodeInterp N node) (continuous_nodeInterp N node) hLclose hL0 hL1
   -- The comparison path lives in finitely many planes, which cannot cover `E`.
   obtain ⟨w, hw0, hw⟩ := exists_ne_zero_notMem_span_pair h N node
   refine ⟨γ', hsquare, ⟨normalize w, mem_sphere_zero_iff_norm.mpr (norm_normalize hw0)⟩, ?_⟩

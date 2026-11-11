@@ -12,6 +12,7 @@ public import Mathlib.Analysis.Normed.Group.BallSphere
 -- Private: these supply the affine homotopy and the antipode inequality used in proofs below.
 import Mathlib.Analysis.Normed.Module.Ball.Action
 import Mathlib.Topology.Homotopy.Affine
+import Mathlib.Analysis.Normed.Module.Convex
 
 /-!
 # The punctured unit sphere
@@ -33,6 +34,8 @@ arbitrary loop off a point, which is done in
 * `TauCeti.contractibleSpace_sphere_compl_singleton`: the sphere minus one point is contractible.
 * `TauCeti.nullhomotopic_inclusion_sphere_compl_singleton`: the inclusion of the sphere minus a
   point into the sphere is null-homotopic.
+* `Path.exists_homotopic_normalize_of_norm_sub_lt_one`: normalize a close continuous
+  comparison map to obtain a path homotopic with fixed endpoints.
 * `Path.homotopic_refl_of_notMem_range`: a loop on the unit sphere omitting a point of
   the sphere is null-homotopic.
 
@@ -40,6 +43,9 @@ arbitrary loop off a point, which is done in
 
 The contraction of a punctured sphere onto the antipode of the puncture is the standard one,
 as in Hatcher, *Algebraic Topology*, Section 1.1.
+
+The normalized short-segment homotopy is the sphere case of the retraction homotopy in
+J. M. Lee, *Introduction to Smooth Manifolds*, 2nd ed., Springer GTM 218 (2013), Theorem 6.26.
 -/
 
 public section
@@ -183,6 +189,46 @@ theorem _root_.Path.homotopic_of_segment_ne_zero {a b : sphere (0 : E) 1} (γ γ
       (y := (1 : I)) ?_ ?_ hbnorm u)
     · exact congrArg Subtype.val γ.target
     · exact (normalize_eq_self_of_norm_eq_one (hγ'norm 1)).trans (congrArg Subtype.val γ'.target)
+
+/-- A path on the unit sphere is homotopic, with fixed endpoints, to the radial projection
+of any continuous map within distance one that agrees at the endpoints. -/
+theorem _root_.Path.exists_homotopic_normalize_of_norm_sub_lt_one
+    {x y : sphere (0 : E) 1} (γ : Path x y) (f : I → E) (hf : Continuous f)
+    (hLclose : ∀ t, ‖f t - (γ t : E)‖ < 1)
+    (hL0 : f 0 = (x : E)) (hL1 : f 1 = (y : E)) :
+    ∃ γ' : Path x y, γ.Homotopic γ' ∧ ∀ t, (γ' t : E) = normalize (f t) := by
+  have hγnorm : ∀ t, ‖((γ t : sphere (0 : E) 1) : E)‖ = 1 := fun t =>
+    mem_sphere_zero_iff_norm.mp (γ t).2
+  have hLne : ∀ t : I, f t ≠ 0 := by
+    intro t ht
+    have hlt := hLclose t
+    rw [ht, zero_sub, norm_neg, hγnorm t] at hlt
+    exact lt_irrefl 1 hlt
+  -- The comparison path.
+  let Lsphere := normalizeToSphere (f) hf hLne
+  have hx1 : ‖((x : sphere (0 : E) 1) : E)‖ = 1 := mem_sphere_zero_iff_norm.mp x.2
+  let γ' : Path x y :=
+    { toFun := Lsphere
+      continuous_toFun := Lsphere.continuous
+      source' := Subtype.ext (by
+        rw [coe_normalizeToSphere_apply, hL0, normalize_eq_self_of_norm_eq_one hx1])
+      target' := Subtype.ext (by
+        rw [coe_normalizeToSphere_apply, hL1,
+          normalize_eq_self_of_norm_eq_one (mem_sphere_zero_iff_norm.mp y.2)]) }
+  -- The straight-line homotopy between the path and the comparison path misses the origin.
+  have hGne : ∀ z : I × I,
+      (1 - (z.1 : ℝ)) • ((γ z.2 : sphere (0 : E) 1) : E) + (z.1 : ℝ) • f z.2
+        ≠ 0 := by
+    intro z hz
+    have hmem := (convex_ball ((γ z.2 : sphere (0 : E) 1) : E) 1)
+      (by simp : ((γ z.2 : sphere (0 : E) 1) : E) ∈ ball (γ z.2 : E) 1)
+      (by simpa [mem_ball, dist_eq_norm] using hLclose z.2)
+      (sub_nonneg.mpr (unitInterval.le_one z.1)) (unitInterval.nonneg z.1)
+      (sub_add_cancel 1 (z.1 : ℝ))
+    simp [hz, mem_ball, hγnorm] at hmem
+  have hγ' : ∀ t, ((γ' t : sphere (0 : E) 1) : E) = normalize (f t) := fun t =>
+    coe_normalizeToSphere_apply (f) hf hLne t
+  exact ⟨γ', γ.homotopic_of_segment_ne_zero γ' (f) hγ' hGne, hγ'⟩
 
 private theorem normalize_smul_sub_smul_ne_of_ne {x p : E} (hx : ‖x‖ = 1) (hp : ‖p‖ = 1)
     (hxp : x ≠ p) (u : I) : normalize ((1 - (u : ℝ)) • x - (u : ℝ) • p) ≠ p := by
