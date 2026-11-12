@@ -18,7 +18,8 @@ import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Quotient
 An injective integral immersion of an involutive constant-rank distribution with a
 second-countable intrinsic carrier is weakly embedded: every `C^m` map into its image has a
 `C^m` factorization through that carrier. The factor is continuous even for a continuous test
-map from a locally connected space.
+map from a locally connected space. Equivalently, regularity of a map into the integral carrier
+is detected by composing with the ambient immersion.
 
 The ambient normed model is finite dimensional and real. The integral immersion has regularity
 `m ≥ 1`, and the ambient manifold has regularity `r` with `m + 1 ≤ r`. Both manifolds are
@@ -28,6 +29,7 @@ boundaryless, but their models may have boundary. The carrier retains its given 
 
 * `TauCeti.IsIntegralManifold.continuous_of_comp_eq`: continuity of the intrinsic lift.
 * `TauCeti.IsIntegralManifold.exists_contMDiff_factor`: weak embeddedness.
+* `TauCeti.IsIntegralManifold.contMDiff_iff_comp`: regularity detected by the ambient immersion.
 
 ## References
 

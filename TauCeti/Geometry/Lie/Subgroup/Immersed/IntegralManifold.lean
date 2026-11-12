@@ -20,7 +20,9 @@ import TauCeti.Geometry.Lie.Interior
 # Lie subgroups from integral manifolds
 
 A connected second-countable injective integral immersion whose image is a subgroup yields
-a native immersed Lie-subgroup presentation retaining its intrinsic topology. No group structure
+a native immersed Lie-subgroup presentation retaining its intrinsic topology.
+`IsIntegralManifold.lieGroup` supplies smooth operations for an existing source group.
+No group structure
 on the integral manifold is assumed. The original manifold is diffeomorphic to the presenting
 manifold, and this identification intertwines the original immersion and the native homomorphism.
 
@@ -37,6 +39,51 @@ open scoped Manifold ContDiff
 
 universe u v w
 
+attribute [local instance] LieGroup.minSmoothness_of_isRCLikeNormedField
+attribute [local instance] ContMDiffMul.boundarylessManifold
+
+namespace TauCeti
+
+/-- An injective homomorphism which is an integral immersion of an involutive constant-rank
+distribution makes its second-countable boundaryless source group a Lie group, with its given
+intrinsic topology and smooth structure. No connectedness of the source is required. -/
+theorem IsIntegralManifold.lieGroup
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensional ℝ E]
+    {H : Type*} [TopologicalSpace H] {I : ModelWithCorners ℝ E H}
+    {G : Type*} [TopologicalSpace G] [ChartedSpace H G] [Group G] [LieGroup I ∞ G]
+    {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
+    {H' : Type*} [TopologicalSpace H'] {J : ModelWithCorners ℝ F H'}
+    {N : Type*} [TopologicalSpace N] [ChartedSpace H' N] [Group N] [IsManifold J ∞ N]
+    [BoundarylessManifold J N] [SecondCountableTopology N]
+    {D : ∀ x : G, Submodule ℝ (TangentSpace I x)} {k : ℕ} {f : N →* G}
+    (hf : IsIntegralManifold J ∞ D (f : N → G))
+    (hinv : IsInvolutiveDistribution I D) (hD : IsContMDiffDistribution I ∞ k D)
+    (hi : Injective f) : LieGroup J ∞ N := by
+  have hmul : ContMDiff (J.prod J) J ∞ (fun p : N × N ↦ p.1 * p.2) :=
+    (hf.contMDiff_iff_comp (r := ∞) (by simp) hi (by simp) hinv hD).mpr (by
+      simpa only [Function.comp_def, map_mul] using
+        (show ContMDiff (J.prod J) I ∞ (fun p : N × N ↦ f p.1 * f p.2) from
+          (hf.contMDiff.comp contMDiff_fst).mul (hf.contMDiff.comp contMDiff_snd)))
+  have hinverse : ContMDiff J J ∞ (fun x : N ↦ x⁻¹) :=
+    (hf.contMDiff_iff_comp (r := ∞) (by simp) hi (by simp) hinv hD).mpr (by
+      simpa only [Function.comp_def, map_inv] using
+        (show ContMDiff J I ∞ (fun x : N ↦ (f x)⁻¹) from hf.contMDiff.inv))
+  exact
+    { toContMDiffMul := { toIsManifold := inferInstance, contMDiff_mul := hmul }
+      contMDiff_inv := hinverse }
+
+end TauCeti
+
+private def modelDiffeomorphOfImageRangeEq
+    {F₁ : Type*} [NormedAddCommGroup F₁] [NormedSpace ℝ F₁]
+    {H₁ : Type*} [TopologicalSpace H₁] {J₁ : ModelWithCorners ℝ F₁ H₁}
+    {F₂ : Type*} [NormedAddCommGroup F₂] [NormedSpace ℝ F₂]
+    {H₂ : Type*} [TopologicalSpace H₂] {J₂ : ModelWithCorners ℝ F₂ H₂}
+    (A : F₁ ≃L[ℝ] F₂) (hA : A '' range J₁ = range J₂) : H₂ ≃ₘ⟮J₂, J₁⟯ H₁ :=
+  { toEquiv := (A.modelHomeomorph hA).symm.toEquiv
+    contMDiff_toFun := A.contMDiff_modelHomeomorph_symm hA
+    contMDiff_invFun := A.contMDiff_modelHomeomorph hA }
+
 namespace TauCeti.Lie.ImmersedLieSubgroupData
 
 variable {E : Type u} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensional ℝ E]
@@ -47,8 +94,6 @@ variable {E : Type u} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensio
   {N : Type w} [TopologicalSpace N] [ChartedSpace H' N] [IsManifold J ∞ N]
   [ConnectedSpace N] [SecondCountableTopology N]
 
-attribute [local instance] LieGroup.minSmoothness_of_isRCLikeNormedField
-attribute [local instance] ContMDiffMul.boundarylessManifold
 attribute [local instance] ImmersedLieSubgroupData.group
   ImmersedLieSubgroupData.topologicalSpace ImmersedLieSubgroupData.normedAddCommGroup
   ImmersedLieSubgroupData.normedSpace ImmersedLieSubgroupData.finiteDimensional
@@ -75,22 +120,8 @@ private def integralManifoldData {D : ∀ x : G, Submodule ℝ (TangentSpace I x
   let inc : N →* G := K.subtype.comp eK.mulEquiv.toMonoidHom
   -- The transferred group equivalence has the original set map as its underlying function.
   have hinc (x : N) : inc x = f x := rfl
-  have hmul (x y : N) : f (x * y) = f x * f y := by
-    simpa only [hinc] using inc.map_mul x y
-  have hfInv (x : N) : f x⁻¹ = (f x)⁻¹ := by
-    simpa only [hinc] using inc.map_inv x
-  have hmulSmooth : ContMDiff (J.prod J) J ∞ (fun p : N × N ↦ p.1 * p.2) :=
-    (hf.contMDiff_iff_comp (r := ∞) (by simp) hi (by simp) hinv hD).mpr (by
-      simpa only [Function.comp_def, hmul] using
-        (show ContMDiff (J.prod J) I ∞ (fun p : N × N ↦ f p.1 * f p.2) from
-          (hf.contMDiff.comp contMDiff_fst).mul (hf.contMDiff.comp contMDiff_snd)))
-  have hinvSmooth : ContMDiff J J ∞ (fun x : N ↦ x⁻¹) :=
-    (hf.contMDiff_iff_comp (r := ∞) (by simp) hi (by simp) hinv hD).mpr (by
-      simpa only [Function.comp_def, hfInv] using
-        (show ContMDiff J I ∞ (fun x : N ↦ (f x)⁻¹) from hf.contMDiff.inv))
   letI : LieGroup J ∞ N :=
-    { toContMDiffMul := { toIsManifold := inferInstance, contMDiff_mul := hmulSmooth }
-      contMDiff_inv := hinvSmooth }
+    (show IsIntegralManifold J ∞ D (inc : N → G) from hf).lieGroup hinv hD hi
   -- Fit both model universes while leaving the intrinsic space itself untouched.
   let R := EuclideanSpace ℝ (Fin (Module.finrank ℝ F))
   let V := ULift.{u} R
@@ -102,10 +133,7 @@ private def integralManifoldData {D : ∀ x : G, Submodule ℝ (TangentSpace I x
   have hA : A '' range J₁ = range J := by
     rw [ModelWithCorners.range_eq_univ, ModelWithCorners.range_eq_univ, image_univ]
     exact A.surjective.range_eq
-  let Φ : H' ≃ₘ⟮J, J₁⟯ H₁ :=
-    { toEquiv := (A.modelHomeomorph hA).symm.toEquiv
-      contMDiff_toFun := A.contMDiff_modelHomeomorph_symm hA
-      contMDiff_invFun := A.contMDiff_modelHomeomorph hA }
+  let Φ : H' ≃ₘ⟮J, J₁⟯ H₁ := modelDiffeomorphOfImageRangeEq A hA
   letI := Φ.toHomeomorph.toOpenPartialHomeomorph.singletonChartedSpace (by simp)
   letI := ChartedSpace.comp H₁ H' N
   letI := Φ.isManifold_chartedSpaceComp N
@@ -157,21 +185,19 @@ def ofIntegralManifold : ImmersedLieSubgroupData I K :=
 immersed subgroup. This identifies its original model with the lifted Euclidean chart model. -/
 def ofIntegralManifoldDiffeomorph :
     N ≃ₘ⟮J, (ofIntegralManifold hinv hD K hf hi hr).I'⟯
-      (ofIntegralManifold hinv hD K hf hi hr).X := by
-  unfold ofIntegralManifold
-  exact (integralManifoldData hinv hD K hf hi hr).2.1
+      (ofIntegralManifold hinv hD K hf hi hr).X :=
+  (integralManifoldData hinv hD K hf hi hr).2.1
 
 /-- The intrinsic model comparison intertwines the native presenting homomorphism and the
 original integral immersion. -/
 @[simp]
 theorem toHom_ofIntegralManifoldDiffeomorph (x : N) :
     (ofIntegralManifold hinv hD K hf hi hr).toHom
-      (ofIntegralManifoldDiffeomorph hinv hD K hf hi hr x) = f x := by
-  dsimp only [ofIntegralManifoldDiffeomorph, ofIntegralManifold]
-  exact (integralManifoldData hinv hD K hf hi hr).2.2 x
+      (ofIntegralManifoldDiffeomorph hinv hD K hf hi hr x) = f x :=
+  (integralManifoldData hinv hD K hf hi hr).2.2 x
 
 /-- The inverse intrinsic model comparison recovers the original integral immersion. -/
-theorem ofIntegralManifoldDiffeomorph_symm_apply
+theorem apply_ofIntegralManifoldDiffeomorph_symm
     (x : (ofIntegralManifold hinv hD K hf hi hr).X) :
     f ((ofIntegralManifoldDiffeomorph hinv hD K hf hi hr).symm x) =
       (ofIntegralManifold hinv hD K hf hi hr).toHom x := by

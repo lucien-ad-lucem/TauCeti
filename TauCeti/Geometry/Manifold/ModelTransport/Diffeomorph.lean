@@ -103,10 +103,7 @@ private theorem contMDiff_id_of_chartAt_eq (Φ : H ≃ₘ^n⟮I, I'⟯ H') (N : 
         (chart_mem_maximalAtlas (I := I) x) (mem_chart_source H x)))
   apply hf.congr_of_eventuallyEq
   filter_upwards [(chartAt H' x).open_source.mem_nhds (mem_chart_source H' x)] with y hy
-  -- Expand the identity and composition to apply the chart's local inverse identity.
-  change y = (chartAt H' x).symm (Φ ((chartAt H x) y))
-  rw [← hchart]
-  exact ((chartAt H' x).left_inv hy).symm
+  simp only [id_eq, Function.comp_apply, ← hchart, (chartAt H' x).left_inv hy]
 
 /-- The identity diffeomorphism to the atlas obtained by composing charts with the
 model diffeomorphism `Φ`. The underlying carrier and topology are unchanged. -/
