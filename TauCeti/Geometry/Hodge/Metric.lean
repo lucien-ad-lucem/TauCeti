@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Analysis.InnerProductSpace.Defs
 public import TauCeti.Geometry.Hodge.HodgeForm
+public import TauCeti.Analysis.InnerProductSpace.SesquilinearForm
 
 /-!
 # The Hodge metric of a polarized Hodge structure
@@ -40,18 +41,13 @@ variable {hs : HodgeStructure hℂ n}
 not a global instance, so choosing a polarization does not create competing typeclass instances. -/
 @[implicit_reducible]
 noncomputable def hodgeInnerProductCore (P : Polarization hℂ hs) :
-    InnerProductSpace.Core ℂ Vℂ where
-  inner := fun x y ↦ P.hodgeForm x y
-  conj_inner_symm x y := P.isSymm_hodgeForm.eq y x
-  re_inner_nonneg x := (Complex.nonneg_iff.mp (P.hodgeForm_self_nonneg x)).1
-  add_left x y z := by simp
-  smul_left x y r := by simp
-  definite x hx := P.hodgeForm_self_eq_zero_iff.mp hx
+    InnerProductSpace.Core ℂ Vℂ :=
+  P.hodgeForm.toInnerProductSpaceCore P.isSymm_hodgeForm fun _ ↦ P.hodgeForm_self_pos
 
 /-- The inner product in `hodgeInnerProductCore` is the Hodge form. -/
 @[simp]
 theorem hodgeInnerProductCore_inner (P : Polarization hℂ hs) (x y : Vℂ) :
     @inner ℂ Vℂ P.hodgeInnerProductCore.toInner x y = P.hodgeForm x y :=
-  (rfl)
+  by simp only [LinearMap.toInnerProductSpaceCore_inner]
 
 end TauCeti.Hodge.Polarization

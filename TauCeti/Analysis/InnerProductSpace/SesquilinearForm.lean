@@ -7,9 +7,13 @@ module
 
 public import Mathlib.Analysis.InnerProductSpace.Adjoint
 public import Mathlib.Analysis.Complex.Order
+public import Mathlib.LinearAlgebra.SesquilinearForm.Basic
 
 /-!
-# Sesquilinear forms with prescribed adjoints
+# Sesquilinear forms and inner products
+
+A positive definite Hermitian form on a real or complex vector space defines an
+`InnerProductSpace.Core`, without requiring a previously chosen norm or topology.
 
 A sesquilinear form on a finite-dimensional inner product space which gives every
 endomorphism its usual adjoint is a scalar multiple of the inner product. For a positive
@@ -18,6 +22,19 @@ This is the full-endomorphism-algebra form of the uniqueness of an invariant met
 
 The comparison uses Mathlib's rank-one operators: their adjoints exchange the two vectors.
 It does not assume that the form being compared is already represented by an operator.
+
+## Main definitions and results
+
+* `LinearMap.toInnerProductSpaceCore`: the core defined by a positive definite Hermitian form.
+* `LinearMap.toInnerProductSpaceCore_inner`: its inner product is the original form.
+* `LinearMap.eq_mul_inner_of_adjoint`: a form with the usual adjoints is a scalar multiple of
+  the inner product.
+* `LinearMap.existsUnique_pos_mul_inner_of_adjoint`: uniqueness and positivity of that scalar.
+
+## References
+
+* Mathlib's `InnerProductSpace.Core` in `Mathlib.Analysis.InnerProductSpace.Defs` gives the
+  defining axioms used by `LinearMap.toInnerProductSpaceCore`.
 -/
 
 public section
@@ -25,6 +42,38 @@ public section
 namespace LinearMap
 
 open InnerProductSpace
+
+section Core
+
+variable {𝕜 V : Type*} [RCLike 𝕜] [AddCommGroup V] [Module 𝕜 V]
+
+open scoped ComplexOrder
+
+/-- The inner product space core of a positive definite Hermitian form. This constructs data;
+it does not install a norm or an inner product space instance on a space with an existing norm. -/
+@[instance_reducible]
+noncomputable def toInnerProductSpaceCore (h : V →ₗ⋆[𝕜] V →ₗ[𝕜] 𝕜) (hh : h.IsSymm)
+    (hpos : ∀ x, x ≠ 0 → 0 < h x x) : InnerProductSpace.Core 𝕜 V where
+  inner x y := h x y
+  conj_inner_symm x y := hh.eq y x
+  re_inner_nonneg x := by
+    rcases eq_or_ne x 0 with rfl | hx
+    · simp
+    · exact (RCLike.pos_iff.mp (hpos x hx)).1.le
+  add_left x y z := by simp
+  smul_left x y r := by simp
+  definite x hx := by
+    by_contra hne
+    exact (hpos x hne).ne' hx
+
+/-- The core constructed from a Hermitian form has that form as its inner product. -/
+@[simp]
+theorem toInnerProductSpaceCore_inner (h : V →ₗ⋆[𝕜] V →ₗ[𝕜] 𝕜) (hh : h.IsSymm)
+    (hpos : ∀ x, x ≠ 0 → 0 < h x x) (x y : V) :
+    (h.toInnerProductSpaceCore hh hpos).inner x y = h x y :=
+  (rfl)
+
+end Core
 
 variable {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
   [FiniteDimensional 𝕜 E]
