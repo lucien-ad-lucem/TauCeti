@@ -148,21 +148,16 @@ theorem existsUnique_pos_mul_of_surjective [Nontrivial S] (hsurj : Function.Surj
         -H x (ρ (ι (Q.baseChange ℂ) (1 ⊗ₜ v)) y)) :
     ∃! r : ℝ, 0 < r ∧ ∀ x y, H x y = (r : ℂ) * H₀ x y := by
   -- Make `H₀` the inner product of `S`.
-  let core : InnerProductSpace.Core ℂ S :=
-    { inner x y := H₀ x y
-      conj_inner_symm x y := hH₀.isSymm.eq y x
-      re_inner_nonneg x := (RCLike.nonneg_iff.mp (hH₀.isNonneg.nonneg x)).1
-      add_left x y z := by simp
-      smul_left x y r := by simp
-      definite x hx := by_contra fun h ↦ hdef₀ x h hx }
+  let core := H₀.toInnerProductSpaceCore hH₀.isSymm fun x hx ↦
+    lt_of_le_of_ne (hH₀.isNonneg.nonneg x) (hdef₀ x hx).symm
   let := core.toNormedAddCommGroup
   let := InnerProductSpace.ofCore core.toCore
-  -- `InnerProductSpace.ofCore` takes its inner product from the core, which is `H₀`.
-  have hinner (x y : S) : inner ℂ x y = H₀ x y := rfl
+  have hinner (x y : S) : inner ℂ x y = H₀ x y := by
+    simp only [core, LinearMap.toInnerProductSpaceCore_inner]
   simp_rw [← hinner]
   refine existsUnique_pos_mul_inner_of_surjective ρ hsurj (fun v ↦ ?_) H hpos hdef hH
   refine ((LinearMap.eq_adjoint_iff _ _).mpr fun x y ↦ ?_).symm
-  simp [hinner, hH₀ρ]
+  simp [hH₀ρ]
 
 end Uniqueness
 

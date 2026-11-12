@@ -10,6 +10,7 @@ public import TauCeti.QuantumGroups.UqSl2.Star
 public import TauCeti.QuantumGroups.QuantumInteger.Order
 public import Mathlib.LinearAlgebra.Matrix.SesquilinearForm
 public import Mathlib.Analysis.InnerProductSpace.Defs
+public import TauCeti.Analysis.InnerProductSpace.SesquilinearForm
 
 /-!
 # The invariant metric on positive ladder modules
@@ -37,6 +38,7 @@ real-form convention is `E* = KF`, not `E* = F`.
 public noncomputable section
 
 open Module ComplexConjugate
+open scoped ComplexOrder
 
 namespace TauCeti.UqSl2.LadderModule
 
@@ -133,25 +135,17 @@ theorem invariantForm_pos {q : ℝ} (hq : 0 < q) (hd : q - q⁻¹ ≠ 0) {m : �
 /-- The normalized invariant inner product as named core data. No global norm is installed. -/
 @[instance_reducible]
 def innerProductCore {q : ℝ} (hq : 0 < q) (hd : q - q⁻¹ ≠ 0) (m : ℕ) :
-    InnerProductSpace.Core ℂ (LadderModule (q : ℂ) m 1) where
-  inner v w := invariantForm q m v w
-  conj_inner_symm x y := invariantForm_symm q m y x
-  re_inner_nonneg x := by
-    by_cases hx : x = 0
-    · simp [hx]
-    · exact (invariantForm_pos hq hd hx).le
-  add_left x y z := by simp
-  smul_left x y r := by simp
-  definite x hx := by
-    by_contra h
-    have := invariantForm_pos hq hd h
-    simp [hx] at this
+    InnerProductSpace.Core ℂ (LadderModule (q : ℂ) m 1) :=
+  (invariantForm q m).toInnerProductSpaceCore ⟨invariantForm_symm q m⟩ fun v hv ↦
+    Complex.pos_iff.mpr ⟨invariantForm_pos hq hd hv,
+      (Complex.conj_eq_iff_im.mp (invariantForm_symm q m v v)).symm⟩
 
 /-- The named inner product is the explicit diagonal form. -/
 @[simp]
 theorem innerProductCore_inner {q : ℝ} (hq : 0 < q) (hd : q - q⁻¹ ≠ 0) (m : ℕ)
     (v w : LadderModule (q : ℂ) m 1) :
-    @inner ℂ _ (innerProductCore hq hd m).toInner v w = invariantForm q m v w := (rfl)
+    @inner ℂ _ (innerProductCore hq hd m).toInner v w = invariantForm q m v w := by
+  simp only [LinearMap.toInnerProductSpaceCore_inner]
 
 /-- Pairing an integer-indexed ladder vector with a basis vector, including out-of-range
 indices. -/

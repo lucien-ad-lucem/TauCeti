@@ -8,6 +8,7 @@ module
 public import TauCeti.RepresentationTheory.Spin.Polarization.Fock.Metric
 public import Mathlib.Analysis.InnerProductSpace.Adjoint
 public import TauCeti.LinearAlgebra.ExteriorAlgebra.Dimension
+public import TauCeti.Analysis.InnerProductSpace.SesquilinearForm
 import TauCeti.Geometry.Symplectic.Finrank
 
 /-!
@@ -71,15 +72,13 @@ private theorem fockMetricBasis_polar (i j : Fin (finrank ℝ V / 2)) :
 inner product core. Its increasing wedge basis is orthonormal for every orthonormal
 basis of the holomorphic polarization. -/
 @[instance_reducible]
-def fockInnerProductCore : InnerProductSpace.Core ℂ S where
-  inner s t := toLinearMapₛₗ₂ (starRingEnd ℂ)
+def fockInnerProductCore : InnerProductSpace.Core ℂ S :=
+  (toLinearMapₛₗ₂ (starRingEnd ℂ)
     (J.fockMetricBasis hQJ hQnd hQ).ExteriorAlgebra
-    (J.fockMetricBasis hQJ hQnd hQ).ExteriorAlgebra 1 s t
-  conj_inner_symm s t := star_toLinearMapₛₗ₂_one_apply _ t s
-  re_inner_nonneg s := (RCLike.nonneg_iff.mp (toLinearMapₛₗ₂_one_self_nonneg _ s)).1
-  add_left s t u := by simp
-  smul_left s t r := by simp
-  definite s hs := (toLinearMapₛₗ₂_one_self_eq_zero_iff _).mp hs
+    (J.fockMetricBasis hQJ hQnd hQ).ExteriorAlgebra 1).toInnerProductSpaceCore
+      ⟨star_toLinearMapₛₗ₂_one_apply _⟩ fun s hs ↦
+        lt_of_le_of_ne (toLinearMapₛₗ₂_one_self_nonneg _ s) fun h ↦
+          hs ((toLinearMapₛₗ₂_one_self_eq_zero_iff _).mp h.symm)
 
 /-- The Fock inner product core is the wedge Gram form for any orthonormal polarization
 basis. In particular it does not depend on the auxiliary basis used in its construction. -/
@@ -89,6 +88,7 @@ theorem fockInnerProductCore_inner {ι : Type*} [Fintype ι] [LinearOrder ι]
       (b j) = if i = j then -2 else 0) (s t : S) :
     (J.fockInnerProductCore hQJ hQnd hQ).inner s t =
       toLinearMapₛₗ₂ (starRingEnd ℂ) b.ExteriorAlgebra b.ExteriorAlgebra 1 s t := by
+  rw [fockInnerProductCore, LinearMap.toInnerProductSpaceCore_inner]
   exact LinearMap.congr_fun₂ (J.toLinearMapₛₗ₂_exteriorAlgebra_eq hQJ hQnd
     (J.fockMetricBasis hQJ hQnd hQ) (J.fockMetricBasis_polar hQJ hQnd hQ) b hb) s t
 
@@ -131,8 +131,12 @@ theorem orthonormal_fock {ι : Type*} [Finite ι] [LinearOrder ι] (b : Basis ι
 /-- The vacuum of the normalized Fock module has inner product one with itself. -/
 private theorem inner_fock_one_one : letI := J.fockNormedAddCommGroup hQJ hQnd hQ
     letI := J.fockInnerProductSpace hQJ hQnd hQ
-    inner ℂ (1 : S) 1 = 1 :=
-  ExteriorAlgebra.toLinearMapₛₗ₂_apply_one_one (J.fockMetricBasis hQJ hQnd hQ)
+    inner ℂ (1 : S) 1 = 1 := by
+  let := J.fockNormedAddCommGroup hQJ hQnd hQ
+  let := J.fockInnerProductSpace hQJ hQnd hQ
+  rw [J.inner_fock hQJ hQnd hQ (J.fockMetricBasis hQJ hQnd hQ)
+    (J.fockMetricBasis_polar hQJ hQnd hQ)]
+  exact ExteriorAlgebra.toLinearMapₛₗ₂_apply_one_one (J.fockMetricBasis hQJ hQnd hQ)
 
 /-- The vacuum of the normalized Fock module is a unit vector in the native norm. -/
 @[simp]
