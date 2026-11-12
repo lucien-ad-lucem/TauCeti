@@ -207,4 +207,24 @@ theorem IsIntegralManifold.exists_contMDiff_factor
   exact ⟨h, (ContMDiff.iff_comp_isImmersion hf.isImmersion).mpr
     ⟨hc, hcomp.symm ▸ hg⟩, hcomp⟩
 
+/-- `C^m` regularity into an injective integral manifold is detected after composition with its
+ambient immersion. The intrinsic carrier is second countable, as in weak embeddedness. -/
+theorem IsIntegralManifold.contMDiff_iff_comp
+    (hf : IsIntegralManifold J m D f) (hm : 1 ≤ m) (hinj : Injective f)
+    (hmr : (m : ℕ∞ω) + 1 ≤ r)
+    (hinv : let _ : IsManifold I 1 M :=
+      .of_le ((show (1 : ℕ∞ω) ≤ (m : ℕ∞ω) + 1 from le_add_self).trans hmr)
+      IsInvolutiveDistribution I D) {k : ℕ}
+    (hD : let _ : IsManifold I 1 M :=
+      .of_le ((show (1 : ℕ∞ω) ≤ (m : ℕ∞ω) + 1 from le_add_self).trans hmr)
+      IsContMDiffDistribution I m k D)
+    {V : Type*} [NormedAddCommGroup V] [NormedSpace ℝ V]
+    {A : Type*} [TopologicalSpace A] {K : ModelWithCorners ℝ V A}
+    {P : Type*} [TopologicalSpace P] [ChartedSpace A P] {g : P → N} :
+    ContMDiff K J m g ↔ ContMDiff K I m (f ∘ g) := by
+  let _ : LocallyPathConnectedSpace P := K.locallyPathConnectedSpace_of_chartedSpace P
+  refine ⟨hf.contMDiff.comp, fun hg ↦ ?_⟩
+  exact (ContMDiff.iff_comp_isImmersion hf.isImmersion).mpr
+    ⟨hf.continuous_of_comp_eq hm hinj hmr hinv hD hg.continuous rfl, hg⟩
+
 end TauCeti
